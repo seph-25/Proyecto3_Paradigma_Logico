@@ -1,0 +1,53 @@
+{
+    "name": "SWI-Prolog + Python GUI",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    // Configuración del contenedor
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    // Features adicionales de VSCode
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": true,
+            "installOhMyZsh": true
+        },
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    // Extensiones de VSCode a instalar
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "arthurwang.vsc-prolog",
+                "rebornix.prolog",
+                "ms-vscode.makefile-tools"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/bin/python3",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true,
+                "terminal.integrated.defaultProfile.linux": "bash"
+            }
+        }
+    },
+    // Comandos post-creación
+    "postCreateCommand": "pip3 install -r python/requirements.txt",
+    // Usuario remoto
+    "remoteUser": "vscode",
+    // Variables de entorno
+    "remoteEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+    // Montar el X11 socket (para GUI en Linux/WSL)
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    ],
+    // Capacidades adicionales
+    "runArgs": [
+        "--network=host",
+        "--privileged"
+    ]
+}
