@@ -144,6 +144,7 @@ class MenuSaludableApp:
                 # Reactivar selector de carnes
                 if hasattr(self, 'combo_carne'):
                     self.combo_carne.config(state="readonly")
+                    self.combo_carne.set("Todas")
 
         except Exception as e:
             print(f"Error en on_toggle_vegetariano: {e}")
