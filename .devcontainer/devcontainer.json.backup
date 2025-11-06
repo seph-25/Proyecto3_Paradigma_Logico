@@ -37,26 +37,17 @@
     "postCreateCommand": "pip3 install -r python/requirements.txt",
     // Usuario remoto
     "remoteUser": "vscode",
-// ❌ COMENTADO: Variables de entorno X11 (solo para Linux con GUI)
-    // "remoteEnv": {
-    //     "DISPLAY": "${localEnv:DISPLAY}"
-    // },
-    // POR QUÉ: En Windows 11 no existe DISPLAY. En Linux solo se necesita si usas GUI.
-
-    // ❌ COMENTADO: Montaje de socket X11 (solo Linux)
-    // "mounts": [
-    //     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
-    // ],
-    // POR QUÉ: /tmp/.X11-unix no existe en Windows. Solo necesario en Linux para 
-    //          mostrar ventanas gráficas (Tkinter). En Windows no funciona.
-
-    // ❌ COMENTADO: Capacidades de red y privilegios (problema en Docker Desktop Windows)
-    // "runArgs": [
-    //     "--network=host",
-    //     "--privileged"
-    // ]
-    // POR QUÉ: 
-    // - "--network=host": Docker Desktop (Windows) NO lo soporta. Causa error.
-    //                     En Linux es opcional (solo mejora rendimiento).
-    // - "--privileged": No es necesario para Python/Prolog. Riesgo de seguridad.
+    // Variables de entorno
+    "remoteEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+    // Montar el X11 socket (para GUI en Linux/WSL)
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    ],
+    // Capacidades adicionales
+    "runArgs": [
+        "--network=host",
+        "--privileged"
+    ]
 }
