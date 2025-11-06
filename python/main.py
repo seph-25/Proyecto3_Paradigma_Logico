@@ -55,7 +55,7 @@ class MenuSaludableApp:
 
         ttk.Checkbutton(fila1, text="Solo Vegetariano",
                        variable=self.var_vegetariano,
-                       command=self.generar_menus).pack(side="left", padx=10)
+                       command=self.on_toggle_vegetariano).pack(side="left", padx=10)
 
         ttk.Checkbutton(fila1, text="Con Postre",
                        variable=self.var_con_postre,
@@ -70,6 +70,8 @@ class MenuSaludableApp:
         combo_carne = ttk.Combobox(fila2, textvariable=self.var_tipo_carne,
                                    values=tipos_carne, state="readonly", width=15)
         combo_carne.pack(side="left", padx=5)
+        # Guardar como atributo para poder activarlo/desactivarlo cuando se marque "Solo Vegetariano"
+        self.combo_carne = combo_carne
         combo_carne.bind("<<ComboboxSelected>>", lambda e: self.generar_menus())
 
         # Fila 3: Calorías
@@ -120,7 +122,34 @@ class MenuSaludableApp:
         self.label_stats.pack()
 
         # Generar menús iniciales
+        # Sincronizar estado del combobox con el filtro vegetariano al inicio
+        self.on_toggle_vegetariano()
         self.generar_menus()
+
+    def on_toggle_vegetariano(self):
+        """Habilita/deshabilita el combobox de tipo de carne cuando se selecciona "Solo Vegetariano".
+
+        - Si se marca vegetariano: fija el valor de tipo_carne a 'Vegetariano' y desactiva el combobox.
+        - Si se desmarca: vuelve el combobox a estado 'readonly' (reactivándolo) y mantiene el valor previo si corresponde.
+        Finalmente regenera los menús.
+        """
+        try:
+            if self.var_vegetariano.get():
+                # Forzar que el filtro de tipo de carne refleje vegetariano y deshabilitar selector
+                self.var_tipo_carne.set("Vegetariano")
+                # Si el widget fue creado, deshabilitarlo para evitar cambios
+                if hasattr(self, 'combo_carne'):
+                    self.combo_carne.config(state="disabled")
+            else:
+                # Reactivar selector de carnes
+                if hasattr(self, 'combo_carne'):
+                    self.combo_carne.config(state="readonly")
+
+        except Exception as e:
+            print(f"Error en on_toggle_vegetariano: {e}")
+        finally:
+            # Regenerar menús para aplicar el nuevo filtro
+            self.generar_menus()
 
     def generar_menus(self):
         """Genera menús basados en los filtros actuales usando Prolog"""
