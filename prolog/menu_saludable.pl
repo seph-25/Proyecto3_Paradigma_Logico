@@ -67,6 +67,50 @@ filter_meat_type(todas, _, _, _, _).
 filter_meat_type(MeatType, _, _, Type, _) :-
     MeatType = Type.
 
+% Filter ingredients to include specific ones
+% filter_ingredientes_incluir(+IngredientName, +NombreItem, +ListaIncluir, +Result)
+filter_ingredientes_incluir(_, _, [], true).
+filter_ingredientes_incluir(IngredientName, NombreItem, ListaIncluir, Result) :-
+    ListaIncluir \= [],
+    (member(IngredientName, ListaIncluir) ; member(NombreItem, ListaIncluir)),
+    Result = true.
+filter_ingredientes_incluir(IngredientName, NombreItem, ListaIncluir, Result) :-
+    ListaIncluir \= [],
+    \+ member(IngredientName, ListaIncluir),
+    \+ member(NombreItem, ListaIncluir),
+    Result = false.
+
+% Filter ingredients to exclude specific ones
+% filter_ingredientes_excluir(+IngredientName, +NombreItem, +ListaExcluir, +Result)
+filter_ingredientes_excluir(_, _, [], true).
+filter_ingredientes_excluir(IngredientName, NombreItem, ListaExcluir, Result) :-
+    ListaExcluir \= [],
+    (member(IngredientName, ListaExcluir) ; member(NombreItem, ListaExcluir)),
+    Result = false.
+filter_ingredientes_excluir(IngredientName, NombreItem, ListaExcluir, Result) :-
+    ListaExcluir \= [],
+    \+ member(IngredientName, ListaExcluir),
+    \+ member(NombreItem, ListaExcluir),
+    Result = true.
+
+% ============================================================================
+% INGREDIENT VALIDATION
+% ============================================================================
+
+% Check if an ingredient exists in any category
+ingredient_exists(IngredientName) :-
+    entrada(IngredientName, _, _) ;
+    carbohidrato(IngredientName, _, _) ;
+    carne(IngredientName, _, _, _) ;
+    vegetal(IngredientName, _, _) ;
+    postre(IngredientName, _, _).
+
+% Validate all ingredients in a list exist
+validate_ingredients_list([]).
+validate_ingredients_list([H|T]) :-
+    ingredient_exists(H),
+    validate_ingredients_list(T).
+
 % ============================================================================
 % CALORIE VALIDATION
 % ============================================================================
@@ -100,32 +144,56 @@ menu_calories([_, EntradaCal, _], [_, CarbCal, _], [_, CarneCal, _, _],
               [_, VegCal, _], [_, PostreCal, _], Total) :-
     Total is EntradaCal + CarbCal + CarneCal + VegCal + PostreCal.
 
-% Generate a valid menu combination
+% Generate a valid menu combination (backward compatibility)
 % generate_menu(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, Menu)
-generate_menu(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal,
+generate_menu(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, Menu) :-
+    generate_menu_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, [], [], Menu).
+
+% Generate a valid menu combination with ingredient filtering
+% generate_menu_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, IncludeList, ExcludeList, Menu)
+generate_menu_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, IncludeList, ExcludeList,
               menu(Entrada, Carbohidrato, Carne, Vegetal, Postre, TotalCalorias)) :-
+    % Validate ingredient lists first
+    validate_ingredients_list(IncludeList),
+    validate_ingredients_list(ExcludeList),
+    
     % Get filtered items
     entrada(EntradaName, EntradaCal, EntradaVeg),
     filter_vegetarian(VegetarianFilter, EntradaName, EntradaCal, EntradaVeg),
+    filter_ingredientes_incluir(EntradaName, EntradaName, IncludeList, IncludeEntrada),
+    filter_ingredientes_excluir(EntradaName, EntradaName, ExcludeList, ExcludeEntrada),
+    IncludeEntrada = true, ExcludeEntrada = true,
     Entrada = [EntradaName, EntradaCal, EntradaVeg],
 
     carbohidrato(CarbName, CarbCal, CarbVeg),
     filter_vegetarian(VegetarianFilter, CarbName, CarbCal, CarbVeg),
+    filter_ingredientes_incluir(CarbName, CarbName, IncludeList, IncludeCarb),
+    filter_ingredientes_excluir(CarbName, CarbName, ExcludeList, ExcludeCarb),
+    IncludeCarb = true, ExcludeCarb = true,
     Carbohidrato = [CarbName, CarbCal, CarbVeg],
 
     carne(CarneName, CarneCal, CarneType, CarneVeg),
     filter_vegetarian(VegetarianFilter, CarneName, CarneCal, CarneVeg),
     filter_meat_type(MeatTypeFilter, CarneName, CarneCal, CarneType, CarneVeg),
+    filter_ingredientes_incluir(CarneName, CarneName, IncludeList, IncludeCarne),
+    filter_ingredientes_excluir(CarneName, CarneName, ExcludeList, ExcludeCarne),
+    IncludeCarne = true, ExcludeCarne = true,
     Carne = [CarneName, CarneCal, CarneType, CarneVeg],
 
     vegetal(VegName, VegCal, VegVeg),
     filter_vegetarian(VegetarianFilter, VegName, VegCal, VegVeg),
+    filter_ingredientes_incluir(VegName, VegName, IncludeList, IncludeVeg),
+    filter_ingredientes_excluir(VegName, VegName, ExcludeList, ExcludeVeg),
+    IncludeVeg = true, ExcludeVeg = true,
     Vegetal = [VegName, VegCal, VegVeg],
 
     % Handle postre based on ConPostre flag
     (ConPostre = true ->
         (postre(PostreName, PostreCal, PostreVeg),
          filter_vegetarian(VegetarianFilter, PostreName, PostreCal, PostreVeg),
+         filter_ingredientes_incluir(PostreName, PostreName, IncludeList, IncludePostre),
+         filter_ingredientes_excluir(PostreName, PostreName, ExcludeList, ExcludePostre),
+         IncludePostre = true, ExcludePostre = true,
          Postre = [PostreName, PostreCal, PostreVeg])
     ;
         Postre = none
@@ -208,7 +276,7 @@ extract_menu_components(menu([EntradaNom, EntradaCal, EntradaVeg],
         Postre = [PostreNom, PostreCal, PostreVeg]
     ).
 
-% Helper predicate to get a menu with all components extracted
+% Helper predicate to get a menu with all components extracted (backward compatibility)
 get_menu_details(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal,
                  EntradaNom, EntradaCal, EntradaVeg,
                  CarbNom, CarbCal, CarbVeg,
@@ -216,7 +284,23 @@ get_menu_details(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal,
                  VegNom, VegCal, VegVeg,
                  PostreNom, PostreCal, PostreVeg,
                  TotalCal) :-
-    generate_menu(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, Menu),
+    get_menu_details_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, [], [],
+                                    EntradaNom, EntradaCal, EntradaVeg,
+                                    CarbNom, CarbCal, CarbVeg,
+                                    CarneNom, CarneCal, CarneTipo, CarneVeg,
+                                    VegNom, VegCal, VegVeg,
+                                    PostreNom, PostreCal, PostreVeg,
+                                    TotalCal).
+
+% Helper predicate to get a menu with all components extracted including ingredient filtering
+get_menu_details_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, IncludeList, ExcludeList,
+                                 EntradaNom, EntradaCal, EntradaVeg,
+                                 CarbNom, CarbCal, CarbVeg,
+                                 CarneNom, CarneCal, CarneTipo, CarneVeg,
+                                 VegNom, VegCal, VegVeg,
+                                 PostreNom, PostreCal, PostreVeg,
+                                 TotalCal) :-
+    generate_menu_with_ingredients(VegetarianFilter, MeatTypeFilter, ConPostre, MinCal, MaxCal, IncludeList, ExcludeList, Menu),
     extract_menu_components(Menu,
                            EntradaNom, EntradaCal, EntradaVeg,
                            CarbNom, CarbCal, CarbVeg,
